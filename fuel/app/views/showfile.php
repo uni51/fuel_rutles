@@ -1,7 +1,10 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: starboard
- * Date: 2020/01/23
- * Time: 11:15
- */
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title><?php echo $title; ?></title>
+</head>
+<body>
+<?php echo nl2br($content, false); ?>
+</body>
+</html>
