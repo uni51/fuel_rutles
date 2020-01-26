@@ -3,7 +3,6 @@
 class Controller_Form extends Controller_Template
 {
     /**
-     *
      * @return void
      */
     public function action_index()
@@ -12,7 +11,11 @@ class Controller_Form extends Controller_Template
         $this->template->content = View::forge('form/index');
     }
 
-    // 検証ルールの定義
+    /**
+     * 検証ルールの定義
+     *
+     * @return void
+     */
     public function forge_validation()
     {
         // Validationオブジェクトを生成する
@@ -37,6 +40,10 @@ class Controller_Form extends Controller_Template
     }
 
 
+    /**
+     *
+     * @return void
+     */
     public function action_confirm()
     {
         $val = $this->forge_validation();
@@ -53,5 +60,109 @@ class Controller_Form extends Controller_Template
             $this->template->content = View::forge('form/index');
             $this->template->content->set_safe('html_error', $val->show_errors());
         }
+    }
+
+    /**
+     * @return void
+     * @throws HttpInvalidInputException
+     */
+    public function action_send()
+    {
+        // CSRF対策
+        if ( ! Security::check_token())
+        {
+            throw new HttpInvalidInputException('ページ遷移が正しくありません');
+        }
+
+        $val = $this->forge_validation();
+
+        if ( ! $val->run())
+        {
+            $this->template->title = 'コンタクトフォーム: エラー';
+            $this->template->content = View::forge('form/index');
+            $this->template->content->set_safe('html_error', $val->show_errors());
+            return;
+        }
+
+        $post = $val->validated();
+        $data = $this->build_mail($post);
+
+        // メールの送信
+        try
+        {
+            $this->sendmail($data);
+            $this->template->title = 'コンタクトフォーム: 送信完了';
+            $this->template->content = View::forge('form/send');
+            return;
+        }
+        catch (EmailValidationFailedException $e)
+        {
+            Log::error(
+                'メール検証エラー: ' . $e->getMessage(), __METHOD__
+            );
+            $html_error = '<p>メールアドレスに誤りがあります。</p>';
+        }
+        catch (EmailSendingFailedException $e)
+        {
+            Log::error(
+                'メール送信エラー: ' . $e->getMessage(), __METHOD__
+            );
+            $html_error = '<p>メールを送信できませんでした。</p>';
+        }
+
+        $this->template->title = 'コンタクトフォーム: 送信エラー';
+        $this->template->content = View::forge('form/index');
+        $this->template->content->set_safe('html_error', $html_error);
+    }
+
+    /**
+     * メールの作成
+     *
+     * @param $post
+     * @return mixed
+     */
+    public function build_mail($post)
+    {
+        $data['from']      = $post['email'];
+        $data['from_name'] = $post['name'];
+        $data['to']        = 'info@example.jp';
+        $data['to_name']   = '管理者';
+        $data['subject']   = 'コンタクトフォーム';
+
+        $ip    = Input::ip();
+        $agent = Input::user_agent();
+
+        $data['body'] = <<< END
+------------------------------------------------------------
+          名前: {$post['name']}
+メールアドレス: {$post['email']}
+    IPアドレス: $ip
+      ブラウザ: $agent
+------------------------------------------------------------
+コメント:
+{$post['comment']}
+------------------------------------------------------------
+END;
+
+        return $data;
+    }
+
+    /**
+     * メールの送信
+     *
+     * @param $data
+     * @return void
+     */
+    public function sendmail($data)
+    {
+        Package::load('email');
+
+        $email = Email::forge();
+        $email->from($data['from'], $data['from_name']);
+        $email->to($data['to'], $data['to_name']);
+        $email->subject($data['subject']);
+        $email->body($data['body']);
+
+        $email->send();
     }
 }
