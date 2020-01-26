@@ -13,8 +13,7 @@
 </p>
 <p>
     <?php echo Form::label('コメント', 'comment'); ?>(*) :
-    <?php echo Form::textarea('comment', Input::post('comment'),
-        array('rows' => 6, 'cols' => 70)); ?>
+    <?php echo Form::textarea('comment', Input::post('comment'), array('rows' => 6, 'cols' => 70)); ?>
 </p>
 <div class="actions">
     <?php echo Form::submit('submit', '確認'); ?>
