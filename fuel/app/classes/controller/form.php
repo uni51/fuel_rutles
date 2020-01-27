@@ -4,8 +4,18 @@ class Controller_Form extends Controller_Public
 {
     public function action_index()
     {
+        $form = $this->forge_form();
+
+        // 確認ページから修正ボタンを押して戻った場合
+        if(Input::method() === 'POST')
+        {
+            // 送信されたデータをフォームに反映させる
+            $form->repopulate;
+        }
+
         $this->template->title = 'コンタクトフォーム';
         $this->template->content = View::forge('form/index');
+        $this->template->content->set_safe('html_form', $form->build('form/confirm'));
     }
 
     // フォームの定義
