@@ -194,6 +194,7 @@ class Test_Functional_Form extends FunctionalTestCase
         $this->assertEquals($test, static::$crawler->filter('title')->text());
 
         $test = static::$crawler->filter('p')->text();
+
         $expected = '送信完了しました。';
         $this->assertEquals($expected, $test);
     }

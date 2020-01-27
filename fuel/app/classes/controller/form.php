@@ -6,11 +6,9 @@ class Controller_Form extends Controller_Public
     {
         $form = $this->forge_form();
 
-        // 確認ページから修正ボタンを押して戻った場合
-        if(Input::method() === 'POST')
+        if (Input::method() === 'POST')
         {
-            // 送信されたデータをフォームに反映させる
-            $form->repopulate;
+            $form->repopulate();
         }
 
         $this->template->title = 'コンタクトフォーム';
@@ -21,7 +19,6 @@ class Controller_Form extends Controller_Public
     // フォームの定義
     public function forge_form()
     {
-        // Fieldsetオブジェクトを生成する
         $form = Fieldset::forge();
 
         $form->add('name', '名前')
@@ -47,13 +44,10 @@ class Controller_Form extends Controller_Public
         return $form;
     }
 
-    /**
-     *
-     * @return void
-     */
     public function action_confirm()
     {
-        $val = $this->forge_validation()->add_callable('MyValidationRules');
+        $form = $this->forge_form();
+        $val  = $form->validation()->add_callable('MyValidationRules');
 
         if ($val->run())
         {
@@ -63,16 +57,14 @@ class Controller_Form extends Controller_Public
         }
         else
         {
+            $form->repopulate();
             $this->template->title = 'コンタクトフォーム: エラー';
             $this->template->content = View::forge('form/index');
             $this->template->content->set_safe('html_error', $val->show_errors());
+            $this->template->content->set_safe('html_form', $form->build('form/confirm'));
         }
     }
 
-    /**
-     * @return void
-     * @throws HttpInvalidInputException
-     */
     public function action_send()
     {
         // CSRF対策
@@ -81,23 +73,27 @@ class Controller_Form extends Controller_Public
             throw new HttpInvalidInputException('ページ遷移が正しくありません');
         }
 
-        $val = $this->forge_validation()->add_callable('MyValidationRules');
+        $form = $this->forge_form();
+        $val  = $form->validation()->add_callable('MyValidationRules');
 
         if ( ! $val->run())
         {
+            $form->repopulate();
             $this->template->title = 'コンタクトフォーム: エラー';
             $this->template->content = View::forge('form/index');
             $this->template->content->set_safe('html_error', $val->show_errors());
+            $this->template->content->set_safe('html_form', $form->build('form/confirm'));
             return;
         }
 
         $post = $val->validated();
-        $data = $this->build_mail($post);
 
         // メールの送信
         try
         {
-            $this->sendmail($data);
+            $mail = new Model_Mail();
+            $mail->send($post);
+            $this->template->title = 'コンタクトフォーム: 送信完了';
             $this->template->title = 'コンタクトフォーム: 送信完了';
             $this->template->content = View::forge('form/send');
             return;
@@ -117,59 +113,10 @@ class Controller_Form extends Controller_Public
             $html_error = '<p>メールを送信できませんでした。</p>';
         }
 
+        $form->repopulate();
         $this->template->title = 'コンタクトフォーム: 送信エラー';
         $this->template->content = View::forge('form/index');
         $this->template->content->set_safe('html_error', $html_error);
-    }
-
-    /**
-     * メールの作成
-     *
-     * @param $post
-     * @return mixed
-     */
-    public function build_mail($post)
-    {
-        $data['from']      = $post['email'];
-        $data['from_name'] = $post['name'];
-        $data['to']        = 'info@example.jp';
-        $data['to_name']   = '管理者';
-        $data['subject']   = 'コンタクトフォーム';
-
-        $ip    = Input::ip();
-        $agent = Input::user_agent();
-
-        $data['body'] = <<< END
-------------------------------------------------------------
-          名前: {$post['name']}
-メールアドレス: {$post['email']}
-    IPアドレス: $ip
-      ブラウザ: $agent
-------------------------------------------------------------
-コメント:
-{$post['comment']}
-------------------------------------------------------------
-END;
-
-        return $data;
-    }
-
-    /**
-     * メールの送信
-     *
-     * @param $data
-     * @return void
-     */
-    public function sendmail($data)
-    {
-        Package::load('email');
-
-        $email = Email::forge();
-        $email->from($data['from'], $data['from_name']);
-        $email->to($data['to'], $data['to_name']);
-        $email->subject($data['subject']);
-        $email->body($data['body']);
-
-        $email->send();
+        $this->template->content->set_safe('html_form', $form->build('form/confirm'));
     }
 }
