@@ -5,7 +5,7 @@
  *
  * @group App
  */
-class myinputfilters_Test extends \PHPUnit\Framework\TestCase
+class myinputfilters_Test extends TestCase
 {
     public function test_check_encoding_SJIS文字列を検証すると例外が発生()
     {
