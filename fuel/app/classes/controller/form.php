@@ -24,11 +24,13 @@ class Controller_Form extends Controller_Template
         $val->add('name', '名前')
             ->add_rule('trim')
             ->add_rule('required')
+            ->add_rule('no_tab_and_newline')
             ->add_rule('max_length', 50);
 
         $val->add('email', 'メールアドレス')
             ->add_rule('trim')
             ->add_rule('required')
+            ->add_rule('no_tab_and_newline')
             ->add_rule('max_length', 100)
             ->add_rule('valid_email');
 
@@ -46,7 +48,7 @@ class Controller_Form extends Controller_Template
      */
     public function action_confirm()
     {
-        $val = $this->forge_validation();
+        $val = $this->forge_validation()->add_callable('MyValidationRules');
 
         if ($val->run())
         {
@@ -74,7 +76,7 @@ class Controller_Form extends Controller_Template
             throw new HttpInvalidInputException('ページ遷移が正しくありません');
         }
 
-        $val = $this->forge_validation();
+        $val = $this->forge_validation()->add_callable('MyValidationRules');
 
         if ( ! $val->run())
         {
