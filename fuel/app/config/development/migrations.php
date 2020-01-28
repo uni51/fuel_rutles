@@ -7,6 +7,8 @@ return array(
       'default' => 
       array(
         0 => '001_create_form',
+        1 => '002_drop_form',
+        2 => '003_create_forms',
       ),
     ),
     'module' => 
